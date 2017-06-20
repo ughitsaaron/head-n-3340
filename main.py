@@ -2,10 +2,15 @@ import os
 import urllib.request
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
-url = "https://s3.amazonaws.com/personalprojects.aaronpetcoff/head-n-3340/main.txt"
+bucket = "personalprojects.aaronpetcoff"
+key = "head-n-3340/main.txt"
+url = "https://s3.amazonaws.com/" + bucket + "/" + key
+
 PORT = os.environ.get("PORT") or 8000
 
-if PORT == "None": PORT = 8000
+if PORT == "None":
+    PORT = 8000
+
 
 class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):

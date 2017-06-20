@@ -1,22 +1,21 @@
-import twitter
-import random
-import os
-import re
-import html
-import urllib.request
-import boto3
 from apscheduler.schedulers.blocking import BlockingScheduler
+import boto3
+import html
+import os
+import random
+import re
+import twitter
+import urllib.request
 
-""" Program requests a collection of tweets containing the phrase "i wish i" then filters, formats, and concatenates the results to
-a text file stored on Amazon
+""" Program requests a collection of tweets containing
+the phrase "i wish i" then filters, formats, and concatenates
+the results to a text file stored on Amazon
 """
 
-s3 = boto3.resource("s3")
 bucket = "personalprojects.aaronpetcoff"
 key = "head-n-3340/main.txt"
+s3 = boto3.resource("s3")
 url = "https://s3.amazonaws.com/" + bucket + "/" + key
-
-sched = BlockingScheduler()
 
 # grab api keys from environment
 consumer_key = os.environ.get("CONSUMER_KEY")
@@ -24,10 +23,11 @@ consumer_secret = os.environ.get("CONSUMER_SECRET")
 token_key = os.environ.get("ACCESS_KEY")
 token_secret = os.environ.get("TOKEN_SECRET")
 
-def collect_tweets(results, wishes = set(), max = 12):
+
+def collect_tweets(results, wishes=set(), max=12):
     """ recursively creates a set of tweets with
-        a length equal to max. i use a set instead
-        of a list in order to avoid duplicate values
+    a length equal to max. i use a set instead
+    of a list in order to avoid duplicate values
     """
     tweet = pick_tweet(results)
 
@@ -37,15 +37,17 @@ def collect_tweets(results, wishes = set(), max = 12):
     else:
         return wishes
 
+
 def pick_tweet(results):
     # grab a random value from results and filter it
     tweet = filter_awful_stuff(random.choice(results))
 
+    # reject the tweet if any of these conditions are met
     validations = [
-        len(tweet.user_mentions) > 0, # skip the tweet if it contains mentions
-        len(tweet.urls) > 0, # skip the tweet if it contains links
-        tweet.media, # skip the tweet if it contains media
-        not "i wish i" in tweet.text.lower() # the query should ensure the phrase is in the tweet text, but sometimes something sneaks thru
+        len(tweet.user_mentions) > 0,  # mentions
+        len(tweet.urls) > 0,  # links
+        tweet.media,  # media
+        "i wish i" not in tweet.text.lower()  # doesn't have "i wish i"
     ]
 
     if any(validations):
@@ -56,15 +58,16 @@ def pick_tweet(results):
     # return the tweet if it has value after being filtered
     return tweet if tweet else pick_tweet(results)
 
+
 def format_tweet(tweet):
     """ formats tweet according to the regular expressions
-        defined in `patterns`
+    defined in `patterns`
     """
     text = tweet
     patterns = [
-        "\#\w+", # removes hashtags
-        "[^\u0000-\u007F]", # removes emoji
-        "\"$" # tries to remove hanging quotation marks
+        "\#\w+",  # removes hashtags
+        "[^\u0000-\u007F]",  # removes emoji
+        "\"$"  # tries to remove hanging quotation marks
     ]
 
     for pattern in patterns:
@@ -74,6 +77,7 @@ def format_tweet(tweet):
 
     return html.unescape(re.search("i wish i?.*", text, re.IGNORECASE).group())
 
+
 def filter_awful_stuff(tweet):
     # i'm not sure how likely these are to pop up
     # but i just don't want them here. the poem will
@@ -81,19 +85,25 @@ def filter_awful_stuff(tweet):
     for word in ["nigger", "rape", "faggot", "whore"]:
         return None if word in tweet.text else tweet
 
-api = twitter.Api(consumer_key, consumer_secret, token_key, token_secret)
 
+api = twitter.Api(consumer_key, consumer_secret, token_key, token_secret)
 results = api.GetSearch(term="\"i wish i\"", result_type="recent", count=100)
 
+
 def cron():
+    """ schedule cron job to fetch tweets
+    and push them to the text file on S3
+    """
+
     with urllib.request.urlopen(url) as text:
         output = "\n".join(list(collect_tweets(results)))
         data = text.read() + bytes(output + "\n", "utf-8")
-        print()
-        s3.Bucket(bucket).put_object(Key=key, Body=data) # upload
-        s3.Object(bucket, key).Acl().put(ACL="public-read") # make public
+        s3.Bucket(bucket).put_object(Key=key, Body=data)  # upload
+        s3.Object(bucket, key).Acl().put(ACL="public-read")  # make public
 
+
+# add cron jobs and spin up the scheduler
+sched = BlockingScheduler()
 sched.add_job(cron, 'cron', day_of_week='mon-sun', hour='0')
 sched.add_job(cron, 'cron', day_of_week='mon-sun', hour='12')
-
 sched.start()
