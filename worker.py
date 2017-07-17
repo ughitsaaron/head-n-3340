@@ -79,7 +79,7 @@ def format_tweet(tweet):
 
 def filter_awful_stuff(tweet):
     # i"m not sure how likely these are to pop up
-    # but i just don"t want them here. the poem will
+    # but i just don't want them here. the poem will
     # collect enough terrible shit without them
     for word in ["nigger", "rape", "faggot", "whore"]:
         return None if word in tweet.text else tweet
@@ -102,3 +102,8 @@ def cron():
         s3.Bucket(bucket).put_object(Key=key, Body=data)  # upload
         s3.Object(bucket, key).Acl().put(ACL="public-read")  # make public
         print("Data fetched…")
+
+
+if __name__ == "__main__":
+    print("Worker called…")
+    cron()
