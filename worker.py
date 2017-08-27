@@ -6,9 +6,10 @@ import re
 import twitter
 import urllib.request
 
-""" Program requests a collection of tweets containing
-the phrase "i wish i" then filters, formats, and concatenates
-the results to a text file stored on Amazon
+""" Program requests a collection of tweets containing the
+phrase "i wish i" then filters, formats, and concatenates the
+results to a text file stored on Amazon and hosted on the web
+at https://head-n-3340.herokuapp.com
 """
 
 bucket = "personalprojects.aaronpetcoff"
@@ -24,17 +25,15 @@ token_secret = os.environ.get("TOKEN_SECRET")
 
 
 def collect_tweets(results, wishes=set(), max=12):
-    """ recursively creates a set of tweets with
-    a length equal to max. i use a set instead
-    of a list in order to avoid duplicate values
+    """ creates a set of tweets
     """
     tweet = pick_tweet(results)
 
     if len(wishes) < max:
         wishes.add(format_tweet(tweet.text))
         return collect_tweets(results, wishes)
-    else:
-        return wishes
+
+    return wishes
 
 
 def pick_tweet(results):
@@ -59,9 +58,6 @@ def pick_tweet(results):
 
 
 def format_tweet(tweet):
-    """ formats tweet according to the regular expressions
-    defined in `patterns`
-    """
     text = tweet
     patterns = [
         "\#\w+",  # removes hashtags
@@ -90,8 +86,9 @@ results = api.GetSearch(term="\"i wish i\"", result_type="recent", count=100)
 
 
 def cron():
-    """ schedule cron job to fetch tweets
-    and push them to the text file on S3
+    """ create cron scheduled to fetch tweets
+    twice a day every day and push them to the
+    text file on S3
     """
     print("Cron started…")
 
@@ -105,5 +102,4 @@ def cron():
 
 
 if __name__ == "__main__":
-    print("Worker called…")
     cron()
