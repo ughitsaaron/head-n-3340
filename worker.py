@@ -23,6 +23,9 @@ consumer_secret = os.environ.get("CONSUMER_SECRET")
 token_key = os.environ.get("ACCESS_KEY")
 token_secret = os.environ.get("TOKEN_SECRET")
 
+# get awful words to filter from environment
+filter_words = os.environ.get("AWFUL_WORDS").split()
+
 
 def collect_tweets(results, wishes=set(), max=12):
     """ creates a set of tweets
@@ -74,10 +77,7 @@ def format_tweet(tweet):
 
 
 def filter_awful_stuff(tweet):
-    # i"m not sure how likely these are to pop up
-    # but i just don't want them here. the poem will
-    # collect enough terrible shit without them
-    for word in ["nigger", "rape", "faggot", "whore"]:
+    for word in filter_words:
         return None if word in tweet.text else tweet
 
 
